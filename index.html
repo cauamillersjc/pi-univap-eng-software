@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./veiculo.js"></script>
+
+    <script>
+        window.localStorage.setItem('auth', false);
+    </script>
+</head>
+
+<body>
+    <!-- Sticky header -->
+    <header class="header-outer">
+        <div class="header-inner responsive-wrapper">
+            <div class="header-logo">
+                <img src="dashboard.png" />
+            </div>
+            <nav class="header-navigation">
+                <a href="/dados.html">Editar Dados</a>
+                <button>Menu</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <main class="main">
+        <div class="main-content responsive-wrapper row mx-auto">
+            <article class="widget col-5">
+                <div class="container">
+                    <div class="info-container text-center">
+                        <h3>Comparação de Consumo</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="consumptionChart"></canvas>
+                    </div>
+                </div>
+            </article>
+            <article class="widget col-5">
+                <div class="container">
+                    <div class="info-container text-center">
+                        <h3>Comparação de Gastos</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="expensesChart"></canvas>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <script>
+        Chart.defaults.borderColor = '#000';
+        Chart.defaults.color = '#000';
+
+        const listaVeiculos = () => {
+            return new Promise((resolve, reject) => {
+                Veiculo.listarTodos(function (veiculos) {
+                    const veiculosGrafico = [];
+                    const consumos = [];
+                    const gastosCombustivel = [];
+                    const gastosManutencao = [];
+
+                    veiculos.forEach(veiculo => {
+                        let nomeVeiculo = `${veiculo.modelo} (${veiculo.tipo})`;
+                        veiculosGrafico.push(nomeVeiculo);
+                        consumos.push(Number(veiculo.consumoKM));
+                        gastosCombustivel.push(veiculo.gastoCombustivel);
+                        gastosManutencao.push(veiculo.gastoManutencao);
+                    });
+
+                    resolve({ veiculosGrafico, consumos, gastosCombustivel, gastosManutencao });
+                });
+            });
+        }
+
+        const carregaGraficos = async () => {
+            try {
+                const { veiculosGrafico, consumos, gastosCombustivel, gastosManutencao } = await listaVeiculos();
+
+                const dataConsumo = {
+                    labels: veiculosGrafico,
+                    datasets: [
+                        {
+                            label: "Consumo p/ KM",
+                            data: consumos,
+                            backgroundColor: ["rgba(172, 146, 212, 255)", "rgba(86, 227, 161, 255)"],
+                            borderColor: ["rgba(172, 146, 212, 255)", "rgba(86, 227, 161, 255)"],
+                            borderWidth: 1,
+                            barThickness: 60,
+                        },
+                    ],
+                };
+
+                const dataGastos = {
+                    labels: veiculosGrafico,
+                    datasets: [
+                        {
+                            label: "Gasto de Combustível",
+                            data: gastosCombustivel,
+                            backgroundColor: "rgba(172, 146, 212, 255)",
+                            borderColor: "rgba(172, 146, 212, 255)",
+                            borderWidth: 1,
+                            barThickness: 30,
+                        },
+                        {
+                            label: "Gasto de Manutenção",
+                            data: gastosManutencao,
+                            backgroundColor: "rgba(86, 227, 161, 255)",
+                            borderColor: "rgba(86, 227, 161, 255)",
+                            borderWidth: 1,
+                            barThickness: 30,
+                        },
+                    ],
+                };
+
+                const optionsConsumo = {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: "Consumo (Litros/kWh por KM)",
+                            },
+                        },
+                    },
+                };
+
+                const optionsGastos = {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: "Valor em Reais",
+                            },
+                        },
+                    },
+                };
+
+                const ctxGastos = document.getElementById("expensesChart").getContext("2d");
+                const expensesChart = new Chart(ctxGastos, {
+                    type: "bar",
+                    data: dataGastos,
+                    options: optionsGastos,
+                });
+
+                const ctxConsumo = document.getElementById("consumptionChart").getContext("2d");
+                const consumptionChart = new Chart(ctxConsumo, {
+                    type: "bar",
+                    data: dataConsumo,
+                    options: optionsConsumo,
+                });
+            } catch (error) {
+                console.error('Erro ao carregar veículos:', error);
+            }
+        }
+
+        carregaGraficos();
+
+    </script>
+</body>
+
+</html>
